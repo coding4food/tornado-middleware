@@ -28,9 +28,7 @@ class CustomDelegate(tornado.httputil.HTTPMessageDelegate):
     def finish(self):
         self.request.body = b''.join(self._chunks)
         self.request._parse_body()
-        print('awaiting')
         self.handle_request()
-        print('awaited')
 
     def on_connection_close(self):
         self._chunks = None
@@ -39,10 +37,8 @@ class CustomDelegate(tornado.httputil.HTTPMessageDelegate):
     def handle_request(self):
         response = yield self.delegate(self.request)
         reason = tornado.httputil.responses.get(response.status_code, 'Unknown')
-        print('writing headers')
         yield self.request.connection.write_headers(
             tornado.httputil.ResponseStartLine('', response.status_code, reason),
             tornado.httputil.HTTPHeaders(response.headers),
             response.body)
         self.request.connection.finish()
-        print('finished')
