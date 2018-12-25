@@ -1,8 +1,8 @@
+import asyncio
 import functools
 import typing
 from contextlib import asynccontextmanager
 
-import tornado
 import tornado.httputil
 import tornado.routing
 
@@ -28,16 +28,15 @@ class CustomDelegate(tornado.httputil.HTTPMessageDelegate):
     def finish(self):
         self.request.body = b''.join(self._chunks)
         self.request._parse_body()
-        self.handle_request()
+        asyncio.create_task(self.handle_request())
 
     def on_connection_close(self):
         self._chunks = None
 
-    @tornado.gen.coroutine
-    def handle_request(self):
-        response = yield self.delegate(self.request)
+    async def handle_request(self):
+        response = await self.delegate(self.request)
         reason = tornado.httputil.responses.get(response.status_code, 'Unknown')
-        yield self.request.connection.write_headers(
+        await self.request.connection.write_headers(
             tornado.httputil.ResponseStartLine('', response.status_code, reason),
             tornado.httputil.HTTPHeaders(response.headers),
             response.body)
