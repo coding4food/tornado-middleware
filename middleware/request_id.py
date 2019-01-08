@@ -5,6 +5,7 @@ import tornado.httputil
 
 from abstractions import AppDelegate, HTTPResponse
 
+
 def request_id_middleware(delegate: AppDelegate) -> AppDelegate:
     @functools.wraps(delegate)
     async def wrapper(request: tornado.httputil.HTTPServerRequest) -> HTTPResponse:
