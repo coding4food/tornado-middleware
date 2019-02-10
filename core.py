@@ -9,17 +9,17 @@ from abstractions import AppDelegate, Middleware
 from middleware.exception import convert_exception_to_response
 
 
-class CustomRouter(tornado.routing.ReversibleRuleRouter):
+class PipelineRouter(tornado.routing.ReversibleRuleRouter):
     def __init__(self, rules=None, middleware: Sequence[Middleware] = None):
         super().__init__(rules)
         self.middleware = middleware if isinstance(middleware, collections.Sequence) else []
 
     def get_target_delegate(self, target, request, **target_params):
         target_kwargs = target_params.get('target_kwargs')
-        return CustomDelegate(request, middleware=self.middleware, **target_kwargs)
+        return PipelineDelegate(request, middleware=self.middleware, **target_kwargs)
 
 
-class CustomDelegate(tornado.httputil.HTTPMessageDelegate):
+class PipelineDelegate(tornado.httputil.HTTPMessageDelegate):
     request_handler: AppDelegate
 
     def __init__(self, request: tornado.httputil.HTTPServerRequest, delegate: AppDelegate,

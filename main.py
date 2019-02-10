@@ -3,7 +3,7 @@ import asyncio
 from tornado.httpserver import HTTPServer
 
 from abstractions import HTTPResponse
-from handlers import CustomRouter, CustomDelegate
+from core import PipelineRouter, PipelineDelegate
 from middleware.request_id import request_id_middleware
 
 
@@ -20,9 +20,9 @@ async def throw(request):
 
 
 if __name__ == "__main__":
-    HTTPServer(CustomRouter([
-        ('/throw', CustomDelegate, {'delegate': throw}),
-        ('.*', CustomDelegate, {'delegate': foo})
+    HTTPServer(PipelineRouter([
+        ('/throw', PipelineDelegate, {'delegate': throw}),
+        ('.*', PipelineDelegate, {'delegate': foo})
     ])).listen(5000)
 
     loop = asyncio.get_event_loop()
