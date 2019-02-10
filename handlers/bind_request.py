@@ -94,6 +94,7 @@ def bind_arguments(func) -> AppDelegate:
     @functools.wraps(func)
     async def wrapper(request: HTTPServerRequest) -> HTTPResponse:
         annotations = get_type_hints(func)
+        annotations.pop('return', None)
 
         kwargs = {arg_name: _resolve_argument_value(request, arg_name, arg_type)
                   for arg_name, arg_type in annotations.items()}
