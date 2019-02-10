@@ -48,11 +48,16 @@ class SchemaResolver(RequestArgumentResolver):
 
 
 class JsonResolver(RequestArgumentResolver):
+    ALLOWED_METHODS = ['POST', 'PUT', 'PATCH']
+
     def can_resolve_type(self, arg_type: type):
         return arg_type is Json
 
     def resolve(self, request: HTTPServerRequest, arg_name: str, arg_type: type):
-        return json.loads(request.body)
+        if request.headers['Content-Type'] == 'application/json' and request.method.upper() in self.ALLOWED_METHODS:
+            return json.loads(request.body)
+
+        raise ArgumentResolveError(arg_type)
 
 
 class HeaderResolver(RequestArgumentResolver):
