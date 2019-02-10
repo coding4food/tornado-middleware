@@ -23,7 +23,7 @@ async def foo(request) -> HTTPResponse:
     )
 
 
-@route('/broken')
+@route.post('/broken')
 async def broken(request) -> HTTPResponse:
     1 / 0
 
