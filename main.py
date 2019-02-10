@@ -15,8 +15,13 @@ async def foo(request):
         body=b'{"foo": "bar"}')
 
 
+async def throw(request):
+    1 / 0
+
+
 if __name__ == "__main__":
     HTTPServer(CustomRouter([
+        ('/throw', CustomDelegate, {'delegate': throw}),
         ('.*', CustomDelegate, {'delegate': foo})
     ])).listen(5000)
 
