@@ -1,0 +1,16 @@
+GET http://localhost:5000/throw
+
+###
+GET http://localhost:5000
+
+###
+POST http://localhost:5000/bound
+Content-Type: application/json
+X-Request-Id: bar
+
+{
+    "institution_id": ["1001"],
+    "filters": {
+        "account_id": "123456"
+    }
+}
