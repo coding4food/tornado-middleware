@@ -2,8 +2,6 @@ import functools
 
 from tornado.routing import PathMatches
 
-from core import PipelineDelegate
-
 
 class MethodMatches(PathMatches):
     """Matches request path and maethod."""
@@ -27,9 +25,9 @@ class Router:
     def __call__(self, path: str, name=None, method: str = None):
         def wrapper(func):
             if method is None:
-                self._routes.append((path, PipelineDelegate, {'delegate': func}, name))
+                self._routes.append((path, func, name))
             else:
-                self._routes.append((MethodMatches(path, method), PipelineDelegate, {'delegate': func}, name))
+                self._routes.append((MethodMatches(path, method), func, name))
             return func
 
         return wrapper

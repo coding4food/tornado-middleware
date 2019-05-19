@@ -3,11 +3,8 @@ import functools
 import json
 import logging
 
-import tornado.httputil
-from tornado.httpserver import HTTPServer
-
-from abstractions import HTTPResponse, AppDelegate
-from core import PipelineRouter
+from abstractions import HTTPResponse, AppDelegate, HTTPRequest
+from core import TornadoService
 from handlers.bind_request import Json, Header, bind_arguments
 from middleware.request_id import request_id_middleware
 from routing import route
@@ -41,12 +38,12 @@ async def bound(request, data: Json, message_id: Header('X-Request-Id')) -> HTTP
 
 def logging_middleware(func: AppDelegate) -> AppDelegate:
     @functools.wraps(func)
-    async def wrapper(request: tornado.httputil.HTTPServerRequest) -> HTTPResponse:
+    async def wrapper(request: HTTPRequest) -> HTTPResponse:
         response = await func(request)
 
         logging.debug('{method} {path} {status} {error}'.format(
             method=request.method.upper(),
-            path=request.uri,
+            path=request.url,
             status=response.status_code,
             error=response.error
         ))
@@ -57,10 +54,10 @@ def logging_middleware(func: AppDelegate) -> AppDelegate:
 
 
 if __name__ == '__main__':
-    HTTPServer(PipelineRouter(
-        route.get_routes(),
-        [logging_middleware, request_id_middleware]
-    )).listen(5050)
+    TornadoService(
+        route.get_routes()#,
+        #[logging_middleware, request_id_middleware]
+    ).run(5050)
 
     loop = asyncio.get_event_loop()
     loop.run_forever()
