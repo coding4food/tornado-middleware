@@ -1,59 +1,70 @@
-import asyncio
-import collections
-from typing import Sequence
+import typing
 
-import tornado.httputil
-import tornado.routing
+import tornado.web
 
-from abstractions import AppDelegate, Middleware
+import abstractions
 from middleware.exception import convert_exception_to_response
 
 
-class PipelineRouter(tornado.routing.ReversibleRuleRouter):
-    def __init__(self, rules=None, middleware: Sequence[Middleware] = None):
-        super().__init__(rules)
-        self.middleware = middleware if isinstance(middleware, collections.Sequence) else []
+class BaseHandler(tornado.web.RequestHandler):
+    delegate: abstractions.AppDelegate
+    request_handler: abstractions.AppDelegate
 
-    def get_target_delegate(self, target, request, **target_params):
-        target_kwargs = target_params.get('target_kwargs')
-        return PipelineDelegate(request, middleware=self.middleware, **target_kwargs)
+    def initialize(self, **kwargs):
+        delegate = kwargs.pop('delegate')
 
+        if not callable(delegate):
+            raise ValueError('delegate must be callable')
 
-class PipelineDelegate(tornado.httputil.HTTPMessageDelegate):
-    request_handler: AppDelegate
-
-    def __init__(self, request: tornado.httputil.HTTPServerRequest, delegate: AppDelegate,
-                 middleware: Sequence[Middleware], *args, **kwargs):
-        self.request = request
         self.delegate = delegate
-        self.middleware = middleware
-        self._chunks = []
+        self.request_handler = convert_exception_to_response(delegate)
 
-        self.load_middleware()
+    def _make_request(self) -> abstractions.HTTPRequest:
+        return abstractions.HTTPRequest(
+            url=self.request.uri,
+            path=self.request.path,
+            query=self.request.query,
+            method=self.request.method,
+            headers=dict(self.request.headers),
+            body=self.request.body
+        )
 
-    def load_middleware(self):
-        self.request_handler = convert_exception_to_response(self.delegate)
+    def _write_response(self, response: abstractions.HTTPResponse):
+        self.set_status(response.status_code)
 
-        for middleware in reversed(self.middleware):
-            handler = middleware(self.request_handler)
-            self.request_handler = convert_exception_to_response(handler)
+        for k, v in response.headers.items():
+            self.set_header(k, v)
 
-    def data_received(self, chunk):
-        self._chunks.append(chunk)
+        self.finish(response.body)
 
-    def finish(self):
-        self.request.body = b''.join(self._chunks)
-        self.request._parse_body()
-        asyncio.create_task(self.handle_request())
+    async def _process_request(self, *args, **kwargs):
+        response = await self.request_handler(self._make_request())
 
-    def on_connection_close(self):
-        self._chunks = None
+        self._write_response(response)
 
-    async def handle_request(self):
-        response = await self.request_handler(self.request)
-        reason = tornado.httputil.responses.get(response.status_code, 'Unknown')
-        await self.request.connection.write_headers(
-            tornado.httputil.ResponseStartLine('', response.status_code, reason),
-            tornado.httputil.HTTPHeaders(response.headers),
-            response.body)
-        self.request.connection.finish()
+    async def get(self, *args, **kwargs):
+        await self._process_request(*args, **kwargs)
+
+    async def post(self, *args, **kwargs):
+        await self._process_request(*args, **kwargs)
+
+
+Route = typing.Tuple[str, abstractions.AppDelegate]
+
+
+class TornadoService:
+    routes: typing.List[Route]
+
+    def __init__(self, routes: typing.List[Route]):
+        if not isinstance(routes, (list, tuple)):
+            raise ValueError('routes')
+
+        self.routes = routes
+
+    def make_application(self, **settings) -> tornado.web.Application:
+        handlers = [(path, BaseHandler, dict(delegate=delegate), next(iter(name), None)) for path, delegate, *name in self.routes]
+        return tornado.web.Application(handlers, **settings)
+
+    def run(self, port, host: str = "", **settings):
+        app = self.make_application(**settings)
+        app.listen(port, host)
