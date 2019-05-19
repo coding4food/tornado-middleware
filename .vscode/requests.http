@@ -14,3 +14,21 @@ X-Request-Id: bar
         "account_id": "123456"
     }
 }
+
+###
+GET http://localhost:5050/foo
+
+###
+POST http://localhost:5050/broken
+
+###
+POST http://localhost:5050/bound
+Content-Type: application/json
+X-Request-Id: bar
+
+{
+    "institution_id": ["1001"],
+    "filters": {
+        "account_id": "123456"
+    }
+}
