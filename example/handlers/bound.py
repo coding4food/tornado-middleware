@@ -25,6 +25,6 @@ async def bound(request, data: RequestSchema, js: Json, message_id: Header('X-Re
 
     return HTTPResponse(
         status_code=200,
-        headers={'Contetnt-Type': 'application/json', 'Foo': message_id},
+        headers={'Content-Type': 'application/json', 'Foo': message_id},
         body=json.dumps(data).encode()
     )

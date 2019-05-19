@@ -5,9 +5,8 @@ from dataclasses import dataclass
 from typing import get_type_hints, Any, MutableSet
 
 from marshmallow.schema import SchemaMeta
-from tornado.httputil import HTTPServerRequest
 
-from abstractions import HTTPResponse, AppDelegate
+from abstractions import HTTPRequest, HTTPResponse, AppDelegate
 
 
 class RequestArgumentResolver(metaclass=ABCMeta):
@@ -16,7 +15,7 @@ class RequestArgumentResolver(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def resolve(self, request: HTTPServerRequest, arg_name: str, arg_type: type) -> Any:
+    def resolve(self, request: HTTPRequest, arg_name: str, arg_type: type) -> Any:
         pass
 
 
@@ -42,7 +41,7 @@ class SchemaResolver(RequestArgumentResolver):
     def can_resolve_type(self, arg_type: type):
         return isinstance(arg_type, SchemaMeta)
 
-    def resolve(self, request: HTTPServerRequest, arg_name: str, arg_type: type):
+    def resolve(self, request: HTTPRequest, arg_name: str, arg_type: type):
         result, _ = arg_type(strict=True).loads(request.body)
         return result
 
@@ -53,8 +52,8 @@ class JsonResolver(RequestArgumentResolver):
     def can_resolve_type(self, arg_type: type):
         return arg_type is Json
 
-    def resolve(self, request: HTTPServerRequest, arg_name: str, arg_type: type):
-        if request.headers['Content-Type'] == 'application/json' and request.method.upper() in self.ALLOWED_METHODS:
+    def resolve(self, request: HTTPRequest, arg_name: str, arg_type: type):
+        if request.headers.get('Content-Type') == 'application/json' and request.method.upper() in self.ALLOWED_METHODS:
             return json.loads(request.body)
 
         raise ArgumentResolveError(arg_type)
@@ -64,7 +63,7 @@ class HeaderResolver(RequestArgumentResolver):
     def can_resolve_type(self, arg_type: type):
         return isinstance(arg_type, Header)
 
-    def resolve(self, request: HTTPServerRequest, arg_name: str, arg_type: Header):
+    def resolve(self, request: HTTPRequest, arg_name: str, arg_type: Header):
         return request.headers.get(arg_type.name, None)
 
 
@@ -77,7 +76,7 @@ class ArgumentResolveError(Exception):
         return "Unexpected argument type: {arg_type}".format(arg_type=self.arg_type)
 
 
-def _resolve_argument_value(request: HTTPServerRequest, arg_name, arg_type):
+def _resolve_argument_value(request: HTTPRequest, arg_name, arg_type):
     for resolver in ARGUMENT_RESOLVERS:
         if resolver.can_resolve_type(arg_type):
             return resolver.resolve(request, arg_name, arg_type)
@@ -92,7 +91,7 @@ def bind_arguments(func) -> AppDelegate:
     :return: An `AppDelegate` deriving inner handler arguments from type hints and `HTTPServerRequest`.
     """
     @functools.wraps(func)
-    async def wrapper(request: HTTPServerRequest) -> HTTPResponse:
+    async def wrapper(request: HTTPRequest) -> HTTPResponse:
         annotations = get_type_hints(func)
         annotations.pop('return', None)
 

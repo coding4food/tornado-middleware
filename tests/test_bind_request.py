@@ -1,9 +1,9 @@
 import json
 
 from marshmallow import fields, Schema
-from tornado.httputil import HTTPServerRequest, HTTPHeaders
 from tornado.testing import AsyncTestCase, gen_test
 
+from abstractions import HTTPRequest
 from handlers.bind_request import bind_arguments, Json, Header
 
 
@@ -28,14 +28,19 @@ async def foo1(request, data: RequestSchema, js: Json, message_id: Header('X-Req
 class BindArgumentsTests(AsyncTestCase):
     @gen_test
     async def test_foo(self):
-
-
         data = {
             "institution_id": ["1001"],
             "filters": {
                 "account_id": "123456"
             }
         }
-        request = HTTPServerRequest(uri='/', body=json.dumps(data), headers=HTTPHeaders({'X-Request-Id': 'foo'}))
+        request = HTTPRequest(
+            url='/',
+            body=json.dumps(data),
+            headers={'X-Request-Id': 'foo', 'Content-Type': 'application/json'},
+            path='',
+            query='',
+            method='POST'
+        )
 
         await foo1(request)
