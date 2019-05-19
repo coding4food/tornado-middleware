@@ -2,7 +2,15 @@ import typing
 
 from dataclasses import dataclass, field
 
-from tornado.httputil import HTTPServerRequest
+
+@dataclass
+class HTTPRequest:
+    url: str
+    path: str
+    query: str
+    method: str = 'GET'
+    headers: dict = field(default_factory=dict)
+    body: bytes = b''
 
 
 @dataclass
@@ -13,6 +21,6 @@ class HTTPResponse:
     error: Exception = None
 
 
-AppDelegate = typing.Callable[[HTTPServerRequest], typing.Coroutine[typing.Any, typing.Any, HTTPResponse]]
+AppDelegate = typing.Callable[[HTTPRequest], typing.Coroutine[typing.Any, typing.Any, HTTPResponse]]
 
 Middleware = typing.Callable[[AppDelegate], AppDelegate]
