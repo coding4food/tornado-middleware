@@ -1,4 +1,4 @@
-from abstractions import HTTPResponse
+from abstractions import HTTPResponse, HTTPHeaders
 from middleware.request_id import request_id_middleware
 
 
@@ -6,5 +6,5 @@ from middleware.request_id import request_id_middleware
 async def wrapped(request):
     return HTTPResponse(
         status_code=200,
-        headers={'Content-Type': 'application/json', 'Foo': 'bar'},
+        headers=HTTPHeaders({'Content-Type': 'application/json', 'Foo': 'bar'}),
         body=b'{"foo": "bar"}')

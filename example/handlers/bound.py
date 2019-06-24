@@ -2,7 +2,7 @@ import json
 
 from marshmallow import Schema, fields
 
-from abstractions import HTTPResponse
+from abstractions import HTTPResponse, HTTPHeaders
 from handlers.bind_request import bind_arguments, Json, Header
 
 
@@ -25,6 +25,6 @@ async def bound(request, data: RequestSchema, js: Json, message_id: Header('X-Re
 
     return HTTPResponse(
         status_code=200,
-        headers={'Content-Type': 'application/json', 'Foo': message_id},
+        headers=HTTPHeaders({'Content-Type': 'application/json', 'Foo': message_id}),
         body=json.dumps(data).encode()
     )

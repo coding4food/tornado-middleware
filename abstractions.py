@@ -2,6 +2,8 @@ import typing
 
 from dataclasses import dataclass, field
 
+from tornado.httputil import HTTPHeaders
+
 
 @dataclass
 class HTTPRequest:
@@ -9,14 +11,14 @@ class HTTPRequest:
     path: str
     query: str
     method: str = 'GET'
-    headers: dict = field(default_factory=dict)
+    headers: HTTPHeaders = field(default_factory=HTTPHeaders)
     body: bytes = b''
 
 
 @dataclass
 class HTTPResponse:
     status_code: int = 500
-    headers: dict = field(default_factory=dict)
+    headers: HTTPHeaders = field(default_factory=HTTPHeaders)
     body: bytes = b''
     error: Exception = None
 

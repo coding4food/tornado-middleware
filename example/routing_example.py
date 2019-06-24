@@ -3,7 +3,7 @@ import functools
 import json
 import logging
 
-from abstractions import HTTPResponse, AppDelegate, HTTPRequest
+from abstractions import HTTPResponse, AppDelegate, HTTPRequest, HTTPHeaders
 from core import TornadoService
 from handlers.bind_request import Json, Header, bind_arguments
 from middleware.request_id import request_id_middleware
@@ -31,7 +31,7 @@ async def bound(request, data: Json, message_id: Header('X-Request-Id')) -> HTTP
     data.update({'message_id': message_id})
     return HTTPResponse(
         status_code=200,
-        headers={'Content-Type': 'application/json'},
+        headers=HTTPHeaders({'Content-Type': 'application/json'}),
         body=json.dumps(data).encode()
     )
 
@@ -55,8 +55,8 @@ def logging_middleware(func: AppDelegate) -> AppDelegate:
 
 if __name__ == '__main__':
     TornadoService(
-        route.get_routes()#,
-        #[logging_middleware, request_id_middleware]
+        route.get_routes(),
+        [logging_middleware, request_id_middleware]
     ).run(5050)
 
     loop = asyncio.get_event_loop()
